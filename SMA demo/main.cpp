@@ -6,7 +6,7 @@
 */
 
 #include <iostream>
-#include "dataframe.h"
+#include "finmodelling.h"
 
 unsigned int short_term = 10, medium_term = 26;
 const Decimal BOOK_SIZE = 1000000;
@@ -27,23 +27,7 @@ int main(void)
         }
     }
 
-    {
-        //  Generate the short-term SMA column
-
-        addColumn(data, "SHORT_SMA", "", 6);
-
-        for( unsigned int k = short_term ; k < data.size() ; k++ )
-        {
-            Decimal sum = 0;
-
-            for( unsigned int c = k+1-short_term ; c <= k ; c++ )
-            {
-                sum = sum + boost::get <Decimal> (data[c][4]);
-            }
-            sum = sum/short_term;
-            data[k][5] = sum;
-        }
-    }
+    data = sma(data, short_term, "SHORT_SMA");
 
     {
         //  Generate the medium-term SMA column
@@ -56,7 +40,7 @@ int main(void)
 
             for( unsigned int c = k+1-medium_term ; c <= k ; c++ )
             {
-                sum = sum + boost::get <Decimal> (data[c][4]);
+                sum = sum + toDec( data[c][4] );
             }
             sum = sum/medium_term;
             data[k][6] = sum;
@@ -77,6 +61,28 @@ int main(void)
             else
                 data[k][7] = data[k-1][7];
         }
+    }
+
+    {
+        //  Generate benchmark returns
+
+        addColumn(data, "BM_RET", "", 8);
+
+        for( unsigned int k = medium_term+2 ; k < data.size(); k++ )
+            data[k][8] = toDec( data[k][4] ) / toDec( data[k-1][4] ) - 1;
+    }
+
+    {
+        //  Generate balance
+
+        addColumn(data, "BM_EOD_BAL", "", 9);
+        data[medium_term + 1][9] = BOOK_SIZE;
+        for( unsigned int k = medium_term+2 ; k < data.size(); k++ )
+            data[k][9] = toDec( data[k-1][9] ) * (1 + toDec( data[k][8] ));
+    }
+
+    {
+        //  Generate PnL
     }
 
     printPart(data, 1, 20);

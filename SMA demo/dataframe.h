@@ -16,6 +16,12 @@ using Column = std::vector <VarField>;
 using Matrix = std::vector <Row>;
 
 
+Decimal toDec(VarField x)
+{
+    return boost::get <Decimal> (x);
+}
+
+
 int maxCols(const Matrix &M)
 {
     unsigned int x = 0;
