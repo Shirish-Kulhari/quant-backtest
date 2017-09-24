@@ -11,6 +11,8 @@
 unsigned int short_term = 10, medium_term = 26;
 const Decimal BOOK_SIZE = 1000000;
 
+void generateSignal(Matrix &M);
+void generatePNL(Matrix &M);
 
 int main(void)
 {
@@ -26,66 +28,55 @@ int main(void)
             std::cin >> medium_term;
         }
     }
+    Column price_column = getColumn(data, 5);
+    addColumn( data, sma(price_column, short_term, 4, "SHORT_SMA"), -1 );
+    addColumn( data, sma(price_column, medium_term, 4, "MEDIUM_SMA"), -1 );
 
-    data = sma(data, short_term, "SHORT_SMA");
+    generateSignal(data);
 
-    {
-        //  Generate the medium-term SMA column
+    addColumn( data, returns(price_column, "BM_RET"), -1 );
 
-        addColumn(data, "MEDIUM_SMA", "", 6);
+    for( unsigned int k = 1 ; k < medium_term+2 ; k++ )
+        data[k][8] = "";
 
-        for( unsigned int k = medium_term ; k < data.size() ; k++ )
-        {
-            Decimal sum = 0;
 
-            for( unsigned int c = k+1-medium_term ; c <= k ; c++ )
-            {
-                sum = sum + toDec( data[c][4] );
-            }
-            sum = sum/medium_term;
-            data[k][6] = sum;
-        }
-    }
+    addColumn( data, eodBalance( getColumn(data, 9), BOOK_SIZE, "BM_EOD_BAL" ), -1);
+    generatePNL(data);
 
-    {
-        //  Generate the short/long signals
-
-        addColumn(data, "SIGNAL", "", 7);
-
-        for( unsigned int k = medium_term+2 ; k < data.size() ; k++ )
-        {
-            if( data[k-2][5] < data[k-2][6] && data[k-1][5] > data[k-1][6] )
-                data[k][7] = 1;
-            else if( data[k-2][5] > data[k-2][6] && data[k-1][5] < data[k-1][6] )
-                data[k][7] = -1;
-            else
-                data[k][7] = data[k-1][7];
-        }
-    }
-
-    {
-        //  Generate benchmark returns
-
-        addColumn(data, "BM_RET", "", 8);
-
-        for( unsigned int k = medium_term+2 ; k < data.size(); k++ )
-            data[k][8] = toDec( data[k][4] ) / toDec( data[k-1][4] ) - 1;
-    }
-
-    {
-        //  Generate balance
-
-        addColumn(data, "BM_EOD_BAL", "", 9);
-        data[medium_term + 1][9] = BOOK_SIZE;
-        for( unsigned int k = medium_term+2 ; k < data.size(); k++ )
-            data[k][9] = toDec( data[k-1][9] ) * (1 + toDec( data[k][8] ));
-    }
-
-    {
-        //  Generate PnL
-    }
-
-    printPart(data, 1, 20);
     writeCSV("output.csv", data, ',', 6);
 }
 
+
+void generateSignal(Matrix &M)
+{
+    addColumn( M, newColumn(M, "SIGNAL"), -1 );
+
+    for( unsigned int k = medium_term+2 ; k < M.size() ; k++ )
+    {
+        if( M[k-2][5] < M[k-2][6] && M[k-1][5] > M[k-1][6] )
+            M[k][7] = 1;
+        else if( M[k-2][5] > M[k-2][6] && M[k-1][5] < M[k-1][6] )
+            M[k][7] = -1;
+        else
+            M[k][7] = M[k-1][7];
+    }
+}
+
+void generatePNL(Matrix &M)
+{
+    addColumn( M, newColumn(M, "PNL_TEMP"), -1 );
+    addColumn( M, newColumn(M, "PNL"), -1 );
+    M[medium_term+1][10] = BOOK_SIZE;
+
+    for( unsigned int k = medium_term+2 ; k < M.size()-1 ; k++ )
+    {
+        if( toDec( M[k][7] ) * toDec( M[k+1][7] ) == -1 )
+            M[k][10] = M[k][9];
+        else
+            M[k][10] = M[k-1][10];
+
+        M[k][11] = toDec( M[k][10] ) - toDec( M[k-1][10] );
+    }
+
+    deleteColumn(M, 10);
+}

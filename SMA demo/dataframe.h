@@ -136,14 +136,14 @@ void deleteColumn(Matrix &M, unsigned int col)
 }
 
 
-void addColumn(Matrix &M, std::string header, VarField placeholder, unsigned int col)
+void addColumn(Matrix &M, Column column, unsigned int col)
 {
     //  Add a new column after the (col)-th column.
     //  e.g. col=6 means that the new column will be inserted
     //  after the 6th column.
 
     unsigned int max_cols = maxCols(M);
-    unsigned int n;
+    unsigned int n, m = 0;
 
     //  Ensure that column index doesn't exceed number of columns
     col > max_cols || col < 0 ? n = max_cols : n = col;
@@ -158,13 +158,16 @@ void addColumn(Matrix &M, std::string header, VarField placeholder, unsigned int
                 row.push_back("");
 
             //  then add placeholder at designated column no.
-            row.push_back(placeholder);
+            m < column.size() ? row.push_back( column[m] ) : row.push_back("");
         }
         else
-            row.insert(row.begin() + n, placeholder);
-    }
+            if( m < column.size() )
+                row.insert(row.begin() + n, column[m]);
+            else
+                row.insert(row.begin() + n, "");
 
-    M[0][max_cols] = header;
+        m++;
+    }
 }
 
 
@@ -181,6 +184,17 @@ void printMatrix(const Matrix &M)
         for (VarField s : row)    std::cout << std::setw( 12 ) << std::left << s << " ";
         std::cout << '\n';
     }
+}
+
+
+Column newColumn(const Matrix &M, std::string header)
+{
+    Column x;
+    x.push_back(header);
+    for(Row row : M)
+        x.push_back("");
+
+    return x;
 }
 
 
