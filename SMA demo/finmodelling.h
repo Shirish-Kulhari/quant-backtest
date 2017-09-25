@@ -36,28 +36,3 @@ Column returns(const Column column, const std::string header)
 
     return x;
 }
-
-
-Column eodBalance(const Column returns_column, Decimal book_size, const std::string header)
-{
-    Column x = returns_column;
-    x[0] = header;
-    x[1] = book_size;
-    for( unsigned int i = 2 ; i < x.size() ; i++ )
-        x[i] = "";
-    VarField blank = "";
-
-    for( unsigned int k = 2 ; k < returns_column.size() ; k++ )
-    {
-        try
-        {
-            x[k] = toDec( x[k-1] ) * (1 + toDec( returns_column[k] ));
-        }
-        catch(...)
-        {
-            x[k] = x[k-1];
-        }
-    }
-
-    return x;
-}
